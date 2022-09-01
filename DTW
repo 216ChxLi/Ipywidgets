@@ -1,0 +1,77 @@
+class DynamicTimeWarping:
+    
+    def __init__(self, model, speed):
+        
+        index = [5*i for i in range(300)]  # take 1500/5 = 300 element from speed list
+        
+        self.x = np.array([model[i] for i in index])
+        self.y = np.array([speed[i] for i in index])
+        
+    def distance_matrix(self):
+        self.N = self.x.shape[0]
+        self.M = self.y.shape[0]
+        self.dist_mat = np.zeros((self.N, self.M))
+        for i in range(self.N):
+            for j in range(self.M):
+                self.dist_mat[i, j] = abs(self.x[i] - self.y[j])
+        print('initialize distance_matrix')
+        
+    def cost_matix(self):
+        # Initialize the cost matrix
+        self.cost_mat = np.zeros((self.N + 1, self.M + 1))
+        for i in range(1, self.N + 1):
+            self.cost_mat[i, 0] = np.inf
+        for i in range(1, self.M + 1):
+            self.cost_mat[0, i] = np.inf
+        print('initialize cost_matrix')
+            
+    def traceback_matrix(self):
+        # Fill the cost matrix while keeping traceback information
+        self.traceback_mat = np.zeros((self.N, self.M))
+        print('initialize traceback_matrix')
+        
+    def dp(self):
+        
+        for i in range(self.N):
+            for j in range(self.M):
+                penalty = [
+                    self.cost_mat[i, j],      # match (0)
+                    self.cost_mat[i, j + 1],  # insertion (1)
+                    self.cost_mat[i + 1, j]]  # deletion (2)
+                i_penalty = np.argmin(penalty)
+                self.cost_mat[i + 1, j + 1] = self.dist_mat[i, j] + penalty[i_penalty]
+                self.traceback_mat[i, j] = i_penalty
+                
+        # Strip infinity edges from cost_mat before returning
+        self.cost_mat = self.cost_mat[1:, 1:]
+        print('Dynamic Time Warping calculated')
+        
+    def similarity(self):
+        # Traceback from bottom right of the traceback_mat np array
+        i = self.N - 1
+        j = self.M - 1
+        self.path = [(i, j)]
+        self.similarity = 0
+        while i > 0 or j > 0:
+            tb_type = self.traceback_mat[i, j]
+            if tb_type == 0:     # Match
+                i = i - 1
+                j = j - 1
+            elif tb_type == 1:   # Insertion
+                i = i - 1
+                self.similarity +=1
+            elif tb_type == 2:   # Deletion
+                j = j - 1
+                self.similarity +=1
+            self.path.append((i, j))
+    
+    def main(self):
+        self.distance_matrix()
+        self.cost_matix()
+        self.traceback_matrix()
+        self.dp()
+        self.similarity()
+        
+        self.cost = self.cost_mat[self.N - 1, self.M - 1]/(self.N + self.M)
+        print("Normalized alignment cost: {:.4f}".format(self.cost))
+        return self.cost
