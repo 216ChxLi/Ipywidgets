@@ -1,0 +1,130 @@
+from sklearn.preprocessing import Normalizer
+import h5py
+import numpy as np
+import openpyxl
+from os.path import isfile
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import classification_report, confusion_matrix, accuracy_score
+from xgboost import XGBClassifier
+
+from sklearn.model_selection import cross_val_score
+from sklearn.model_selection import GridSearchCV
+import matplotlib.pyplot as plt
+    
+class MachineLearning:
+    
+    def __init__(self):
+        self.Label_list = ['Break_stop_accelerate',
+                           'Break_stop',
+                           'Start',
+                           'Stop_go',
+                           'Break_accelerate',
+                           'Break_constant',
+                           'Accelerate_constant',
+                           'Accelerate_break',
+                           'Break_accelerate_repeated']
+        self.classifier = RandomForestClassifier()  	# Initial a classifier here. Doesn´t have any actual function
+        
+        X = Speed.tolist()
+        transformer = Normalizer(norm='l2').fit(X)  # fit does nothing.
+        self.X = transformer.transform(X)
+        self.X = StandardScaler().fit_transform(self.X)
+        
+        self.y = [self.Label_list.index(label) for label in Label.tolist()] 
+        print('all data successfully normalized!')
+        
+        self.X_train, self.X_test, self.y_train, self.y_test = train_test_split(self.X, self.y, test_size=0.2, random_state=42)
+        print('all data successfully splitted!')
+        
+class RandomForest(MachineLearning):
+
+    def __init__(self):
+        super(RandomForest, self).__init__()
+        self.excel_path = './RandomForest_result.xlsx'
+        
+        #0:'Break_stop_accelerate', 1: 'Break_stop', 2: 'Start', 3: 'Stop_go', 4: 'Break_accelerate', 5: 'Break_constant', 6: 'Accelerate_constant', 7: 'Accelerate_break', 8: 'Break_accelerate_repeated']
+        #class_weight = dict({0:2, 1:5, 2:5, 3:5, 4:2, 5:5, 6:5, 7:2, 8:1})
+        class_weight = 'balanced'
+        
+        print('------------------- in training -------------------')
+        self.classifier = RandomForestClassifier(bootstrap=True,               #
+                                                 class_weight = class_weight,  # 与表单中的类相关联的权重
+                                                 criterion="gini",             # 测试分割质量的函数
+                                                 max_features="sqrt",          # 寻找最佳分割时要考虑的特征数量 
+                                                 min_samples_leaf=0.01,        # 叶节点所需要的最小样本数
+                                                 min_samples_split=0.01,       # 拆分内部节点所需要的最小样本数
+                                                 n_estimators=100,             # 森林中的树木数量
+                                                 oob_score=True)               # 是否使用袋外样本泛化函数
+        self.classifier.fit(self.X_train, self.y_train)
+        
+        self.y_pred = self.classifier.predict(self.X_test)
+        
+        print(confusion_matrix(self.y_test, self.y_pred))
+        print(classification_report(self.y_test, self.y_pred))
+        print(accuracy_score(self.y_test, self.y_pred))
+        
+class RandomForestTest(MachineLearning):
+
+    def __init__(self):
+        super(RandomForestTest, self).__init__()
+        self.excel_path = './RandomForestTest_result.xlsx'
+        
+        #0:'Break_stop_accelerate', 1: 'Break_stop', 2: 'Start', 3: 'Stop_go', 4: 'Break_accelerate', 5: 'Break_constant', 6: 'Accelerate_constant', 7: 'Accelerate_break', 8: 'Break_accelerate_repeated']
+        #class_weight = dict({0:2, 1:5, 2:5, 3:5, 4:2, 5:5, 6:5, 7:2, 8:1})
+        class_weight = 'balanced'
+        
+        score_lt = []
+        print('------------------- in training -------------------')
+        for i in range(0,200,10):
+            self.classifier = RandomForestClassifier(bootstrap=True,               #
+                                                     class_weight = class_weight,  # 与表单中的类相关联的权重
+                                                     criterion="gini",             # 测试分割质量的函数
+                                                     max_features="sqrt",          # 寻找最佳分割时要考虑的特征数量 
+                                                     min_samples_leaf=0.01,        # 叶节点所需要的最小样本数
+                                                     min_samples_split=0.01,       # 拆分内部节点所需要的最小样本数
+                                                     n_estimators=i+1,             # 森林中的树木数量
+                                                     oob_score=True)               # 是否使用袋外样本泛化函数
+
+            score = cross_val_score(self.classifier,  self.X_train, np.array(self.y_train), cv=10).mean()
+            score_lt.append(score)
+        score_max = max(score_lt)
+        print('最大得分：{}'.format(score_max),
+                  '子树数量为：{}'.format(score_lt.index(score_max)*10+1))
+        
+        # 绘制学习曲线
+        x = np.arange(1,201,10)
+        plt.subplot(111)
+        plt.plot(x, score_lt, 'r-')
+        plt.show()
+
+class ExtremGradientBoosting(MachineLearning):
+
+    def __init__(self):
+        super(ExtremGradientBoosting, self).__init__()
+        self.excel_path = './ExtremGradientBoosting_result.xlsx'
+        
+        print('------------------- in training -------------------\n')
+        self.classifier = XGBClassifier(booster="gbtree",
+                                        colsample_bytree=0.6,
+                                        eta=0.4,
+                                        grow_policy="lossguide",
+                                        max_bin=7,
+                                        max_depth=3,
+                                        max_leaves=0,
+                                        n_estimators=100,
+                                        objective="reg:logistic",
+                                        reg_alpha=0,
+                                        reg_lambda=1.875,
+                                        subsample=0.5,
+                                        tree_method="hist",
+                                        use_label_encoder = False)
+
+        self.classifier.fit(self.X_train, self.y_train)
+        
+        self.y_pred = self.classifier.predict(self.X_test)
+        
+        print(confusion_matrix(self.y_test, self.y_pred))
+        print(classification_report(self.y_test, self.y_pred))
+        print(accuracy_score(self.y_test, self.y_pred))
