@@ -1,0 +1,60 @@
+'''
+Layout
+'''
+import math
+import ipywidgets
+
+label_list = ['Break_accelerate', 'Break_stop', 'Break_stop_accelerate', 'Break_constant', 'Accelerate_constant', 'Start','Break_accelerate_repeated', 'Stop_go', 'Accelerate_break', 'Other']
+button_styles = ['primary','success','info'] 
+
+buttons = [ipywidgets.Button(description=label, style={'description_width': 'initial'}, button_style='info') for label in label_list] 
+#button_style='info'
+output = ipywidgets.Output()
+
+grid = ipywidgets.GridspecLayout(math.ceil(len(label_list)/4), 4)
+print(f'grid size: {math.ceil(len(label_list)/4), 4}')
+for i, button in enumerate(buttons):
+    grid[int(i/4), i % 4]=button
+    button_style = button_styles[min(int(i/4), len(button_styles)-1)]
+    button.button_style = button_style
+
+'''
+Event
+'''
+import functools
+from IPython.display import display
+
+def button_output():
+    with output:
+        clear_output()
+        get_info()
+        line_charts(sequence, speed, time)
+
+def on_button_clicked(b,order:int):
+    label = label_list[order]
+    save_info(num, label, sequence, speed)
+    button_output()
+
+for i in range(len(label_list)):
+    buttons[i].on_click(functools.partial(on_button_clicked,order=i))
+   
+'''
+Back buttons
+'''
+button_back = ipywidgets.Button(description='BACK', style={'description_width': 'initial'},button_style='warning')
+
+def back(b):
+    del_info()
+    get_info(default=False)
+    button_output()
+        
+button_back.on_click(back)
+
+'''
+User Interface
+'''
+
+button_output()
+    
+display(grid,output)
+display(button_back)
