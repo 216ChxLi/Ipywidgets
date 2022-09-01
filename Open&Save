@@ -1,0 +1,59 @@
+import json
+import openpyxl
+from os.path import isfile
+
+status_path = file_name+'.json'#'status.json'
+excel_path = file_name+'.xlsx' #'classified_speed.xlsx'
+header = ['Nr', 'sequence', 'label', 'speed']
+print (status_path)
+
+def open_status():
+    if isfile(status_path):
+        with open (status_path,'r',encoding='UTF-8') as file:
+            status = json.load(file)
+            file.close()
+        
+    else:
+        status = []
+        save_status(status)
+    return status
+
+def save_status(status: list):
+    with open (status_path,'w',encoding='UTF-8') as file:
+        file.write(json.dumps(status))
+        file.close()
+        
+def open_excel():
+    if isfile(excel_path):
+        wb = openpyxl.load_workbook(excel_path)
+        sheet = wb['validation_speed']
+    else:
+        wb = openpyxl.Workbook()
+        sheet = wb.active
+        sheet.title = "validation_speed"
+         
+        for i, cell in enumerate(header):
+            sheet.cell(column=i+1, row=1, value=cell)
+        save_excel(wb)
+    return wb,sheet
+
+def save_excel(wb):
+    wb.save(excel_path)
+    
+def save_info(num: int, label: str, sequence: str, speed: list): 
+    status = open_status()
+    status.append({'id':num, 'sequence': sequence})
+    save_status(status)
+    
+    wb, sheet = open_excel()
+    sheet.append([num,sequence,label]+speed)
+    save_excel(wb)
+    
+def del_info():
+    status = open_status()
+    del status[-1]
+    save_status(status)
+    
+    wb,sheet = open_excel()
+    sheet.delete_rows(sheet.max_row)
+    save_excel(wb)
