@@ -1,0 +1,9 @@
+import matplotlib.pyplot as plt
+%matplotlib inline
+
+def line_charts(sequence: str, speed: list, time: list):
+    plt.plot(time,speed)
+    plt.title(sequence)
+    plt.xlabel('Time s')
+    plt.ylabel('speed km/h')
+    plt.show()
